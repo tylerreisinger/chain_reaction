@@ -8,10 +8,12 @@ function GameTimer(start_time) {
     var start_time = start_time;
     var frame_time = start_time;
     var last_frame_time = start_time;
+    var frame_count = 0;
 
     this.new_frame = function(ts) {
         last_frame_time = frame_time;
         frame_time = ts;
+        frame_count += 1;
     };
 
     this.elapsed_ms = function() {
@@ -36,9 +38,10 @@ function Node(rank) {
 function GameState(nodes) {
     this.MAX_NUM_NODES = 15;
     this.nodes = nodes;
+    this.next_node = null;
 
     this.get_nodes = function() {
-        return nodes;
+        return this.nodes;
     };
 
     this.node_count = function() {
@@ -64,18 +67,27 @@ function GameStateRenderer(origin, radius, offset_angle) {
         ctx.save();
         ctx.translate(this.origin.x, this.origin.y);
         ctx.rotate(this.offset_angle);
+        ctx.font = "8px serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+
         for(var i = 0; i < node_count; ++i) {
             var angle = this.offset_angle + d_angle*i;
+            var node = game_state.nodes[i];
             if(angle > 2*Math.PI) {
                 angle -= 2*Math.PI;
             }
 
             ctx.beginPath();
             ctx.arc(0, -this.radius, this.node_radius, 0.0, 2.0*Math.PI, false);
+            ctx.fillStyle = "#000000";
             ctx.fill();
+            ctx.fillStyle = "#FFFFFF";
+            ctx.fillText(node.rank.toString(), 0, -this.radius);
 
             ctx.rotate(d_angle);
         }
+
         ctx.restore();
     }
 }
@@ -89,6 +101,8 @@ var build_random_initial_state = function() {
         var node = new Node(rank);
         nodes.push(node);
     }
+
+    
 
     return nodes;
 }
