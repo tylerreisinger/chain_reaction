@@ -1,3 +1,4 @@
+"use strict";
 var game = null;
 
 var random_int = function(min, max) {
@@ -28,17 +29,16 @@ function Vec2d(x, y) {
 
 function Node(rank) {
     this.rank = rank;
-    this.color = null;
 
     this.merge_with = function(node) {
         return new Node(this.rank + node.rank);
     };
 };
 
-function GameState(nodes) {
+function GameState(nodes, next_node) {
     this.MAX_NUM_NODES = 15;
     this.nodes = nodes;
-    this.next_node = null;
+    this.next_node = next_node;
 
     this.get_nodes = function() {
         return this.nodes;
@@ -47,29 +47,59 @@ function GameState(nodes) {
     this.node_count = function() {
         return this.nodes.length;
     };
-}
+};
+
+function NodeFactory() {
+    this.build_node = function() {
+        var node_rank = random_int(1, 4);
+
+        return new Node(node_rank);
+    };
+
+    this.build_initial_state = function() {
+        var nodes = [];
+        var node_count = random_int(3, 6);
+        for(var i = 0; i < node_count; ++i) {
+            nodes.push(this.build_node());
+        }
+
+        var next_node = this.build_node();
+        return new GameState(nodes, next_node);
+    };
+};
 
 function GameStateRenderer(origin, radius, offset_angle) {
     this.origin = origin;
     this.radius = radius;
     this.offset_angle = offset_angle; 
     this.node_radius = 12;
+    var that = this;
+
+    var draw_node = function(x, y, node, ctx) {
+        ctx.beginPath();
+        ctx.arc(x, y, that.node_radius, 0.0, 2.0*Math.PI, false);
+        ctx.fillStyle = "#000000";
+        ctx.fill();
+        ctx.fillStyle = "#FFFFFF";
+        ctx.fillText(node.rank.toString(), x, y);
+    }
 
     this.render = function(ctx, game_state) {
         var node_count = game_state.node_count();
 
-        if(node_count == 0) {
-            return;
-        }
-
         var d_angle = (Math.PI*2.0) / node_count;
 
         ctx.save();
-        ctx.translate(this.origin.x, this.origin.y);
-        ctx.rotate(this.offset_angle);
+
         ctx.font = "8px serif";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
+
+        ctx.translate(this.origin.x, this.origin.y);
+
+        draw_node(0, 0, game_state.next_node, ctx);
+
+        ctx.rotate(this.offset_angle);
 
         for(var i = 0; i < node_count; ++i) {
             var angle = this.offset_angle + d_angle*i;
@@ -102,8 +132,6 @@ var build_random_initial_state = function() {
         nodes.push(node);
     }
 
-    
-
     return nodes;
 }
 
@@ -112,7 +140,9 @@ function Game() {
     var height = 600;
     var game_time = new GameTimer(performance.now());
     var game_state = null;
+    var node_factory = new NodeFactory();
     this.renderer = null;
+    var that = this;
 
     this.run = function() {
         initialize();
@@ -135,8 +165,8 @@ function Game() {
     };
 
     var initialize = function() {
-        game_state = new GameState(build_random_initial_state());
-        this.renderer = new GameStateRenderer(new Vec2d(width/2, height/2), 200, Math.PI/2.0);
+        game_state = node_factory.build_initial_state();
+        that.renderer = new GameStateRenderer(new Vec2d(width/2, height/2), 200, Math.PI/2.0);
         console.log(game_state);
     };
 
@@ -146,7 +176,7 @@ function Game() {
 
     var render = function(ctx) {
         ctx.clearRect(0, 0, width, height);
-        this.renderer.render(ctx, game_state);
+        that.renderer.render(ctx, game_state);
     };
 }
 
